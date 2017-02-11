@@ -73,7 +73,7 @@ public class ImageDownloader extends AsyncTask<String, Void, Bitmap>
             urlConnection.setRequestProperty("Authorization", RESTMgr.getInstance().getAuth());
             urlConnection.connect();
             int statusCode = urlConnection.getResponseCode();
-            if (statusCode != HttpStatus.SC_OK)
+            if (statusCode != HttpURLConnection.HTTP_OK)
             {
                 return null;
             }

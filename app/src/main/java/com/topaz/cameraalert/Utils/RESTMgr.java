@@ -24,9 +24,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.util.HashMap;
 
@@ -199,36 +206,41 @@ public class RESTMgr
         }
 
         @Override
-        protected String doInBackground(String... uri) {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpResponse response;
+        protected String doInBackground(String... urls) {
             try
             {
-                HttpGet get = new HttpGet(uri[0]);
+                URL uri = new URL(urls[0]);
+
+                HttpURLConnection urlConnection = (HttpURLConnection) uri.openConnection();
+                urlConnection.setRequestMethod("GET");
                 for (String key : headers.keySet())
-                    get.addHeader(key, headers.get(key));
-                response = httpclient.execute(get);
-                StatusLine statusLine = response.getStatusLine();
-                if (statusLine.getStatusCode() == HttpStatus.SC_OK)
+                    urlConnection.setRequestProperty(key, headers.get(key));
+                urlConnection.setDoInput(true);
+                urlConnection.connect();
+
+                int statusCode = urlConnection.getResponseCode();
+                if (statusCode != HttpURLConnection.HTTP_OK)
                 {
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    response.getEntity().writeTo(out);
-                    out.close();
-                    responseString = out.toString();
-                } else
-                {
-                    //Closes the connection.
-                    response.getEntity().getContent().close();
-                    throw new IOException(statusLine.getReasonPhrase());
+                    return null;
                 }
-            }
-            catch (ClientProtocolException e)
-            {
-                //TODO Handle problems..
+
+                InputStream inputStream = urlConnection.getInputStream();
+                if (inputStream != null)
+                {
+                    BufferedReader rd = new BufferedReader(new InputStreamReader(inputStream));
+                    StringBuffer sb = new StringBuffer();
+                    String line;
+
+                    while ((line = rd.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    responseString = sb.toString();
+                    rd.close();
+                }
             }
             catch (IOException e)
             {
-                //TODO Handle problems..
+
             }
             return responseString;
         }
@@ -281,124 +293,53 @@ public class RESTMgr
         }
 
         @Override
-        protected String doInBackground(String... uri)
+        protected String doInBackground(String... urls)
         {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpResponse response;
             try
             {
-                HttpPost post = new HttpPost(uri[0]);
+                URL uri = new URL(urls[0]);
+
+                HttpURLConnection urlConnection = (HttpURLConnection) uri.openConnection();
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setRequestProperty("Content-type", "application/json");
                 for (String key : headers.keySet())
-                    post.addHeader(key, headers.get(key));
-                post.setHeader("Content-type", "application/json");
+                    urlConnection.setRequestProperty(key, headers.get(key));
+
+                urlConnection.setDoOutput(true);
+                urlConnection.setDoInput(true);
+
                 if (data != null)
                 {
-                    StringEntity se = new StringEntity(data.toString());
-                    se.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
-                    post.setEntity(se);
+                    OutputStream os = urlConnection.getOutputStream();
+                    os.write(data.toString().getBytes("UTF-8"));
+                    os.close();
                 }
-                response = httpclient.execute(post);
-                StatusLine statusLine = response.getStatusLine();
-                if (statusLine.getStatusCode() == HttpStatus.SC_OK)
+
+                urlConnection.connect();
+
+                int statusCode = urlConnection.getResponseCode();
+                if (statusCode != HttpURLConnection.HTTP_OK)
                 {
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    response.getEntity().writeTo(out);
-                    out.close();
-                    responseString = out.toString();
+                    return null;
                 }
-                else
+
+                InputStream inputStream = urlConnection.getInputStream();
+                if (inputStream != null)
                 {
-                    //Closes the connection.
-                    response.getEntity().getContent().close();
-                    throw new IOException(statusLine.getReasonPhrase());
+                    BufferedReader rd = new BufferedReader(new InputStreamReader(inputStream));
+                    StringBuffer sb = new StringBuffer();
+                    String line;
+
+                    while ((line = rd.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    responseString = sb.toString();
+                    rd.close();
                 }
-            }
-            catch (ClientProtocolException e)
-            {
-                //TODO Handle problems..
             }
             catch (IOException e)
             {
-                //TODO Handle problems..
-            }
-            return responseString;
-        }
 
-        @Override
-        protected void onPostExecute(String result)
-        {
-            super.onPostExecute(result);
-            try
-            {
-                if (this.responseString != null)
-                {
-                    Object json = new JSONTokener(this.responseString).nextValue();
-                    // call callback
-                    if (listener != null)
-                        listener.onTaskCompleted(json);
-                }
-            }
-            catch (JSONException e)
-            {
-                e.printStackTrace();
-            }
-        }
-    }
-    public class DeleteTask extends AsyncTask<String, String, String> {
-
-        private OnTaskCompleted listener = null;
-        private String responseString = null;
-        private HashMap<String, String> headers;
-
-        public DeleteTask(OnTaskCompleted listener)
-        {
-            this.listener = listener;
-            headers = new HashMap<String, String>();
-        }
-
-        public DeleteTask addHeader(String key, String value)
-        {
-            headers.put(key, value);
-            return this;
-        }
-        public DeleteTask setData(JSONObject data)
-        {
-            return this;
-        }
-
-        @Override
-        protected String doInBackground(String... uri)
-        {
-            HttpClient httpclient = new DefaultHttpClient();
-            HttpResponse response;
-            try {
-                HttpDelete del = new HttpDelete(uri[0]);
-                for (String key : headers.keySet())
-                    del.addHeader(key, headers.get(key));
-                del.setHeader("Content-type", "application/json");
-                response = httpclient.execute(del);
-                StatusLine statusLine = response.getStatusLine();
-                if (statusLine.getStatusCode() == HttpStatus.SC_OK)
-                {
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    response.getEntity().writeTo(out);
-                    out.close();
-                    responseString = out.toString();
-                }
-                else
-                {
-                    //Closes the connection.
-                    response.getEntity().getContent().close();
-                    throw new IOException(statusLine.getReasonPhrase());
-                }
-            }
-            catch (ClientProtocolException e)
-            {
-                //TODO Handle problems..
-            }
-            catch (IOException e)
-            {
-                //TODO Handle problems..
             }
             return responseString;
         }
