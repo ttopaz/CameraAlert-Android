@@ -7,6 +7,7 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 
 public class SwipeableItemClickListener implements RecyclerView.OnItemTouchListener {
     private final OnItemClickListener mListener;

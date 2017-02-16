@@ -9,7 +9,7 @@ import android.widget.ListView;
 public class ListViewAdapter implements ViewAdapter
 {
 
-    private final ListView mListView;
+    public final ListView mListView;
 
     public ListViewAdapter(ListView listView) {
         mListView = listView;

@@ -30,6 +30,9 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.ListView;
+import android.widget.Toast;
+
+import com.topaz.cameraalert.MainActivity;
 
 /**
  * A {@link android.view.View.OnTouchListener} that makes the list items in a collection view
@@ -94,13 +97,20 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
 
     // Handler to dismiss pending items after a delay
     private final Handler mHandler;
-    private final Runnable mDismissRunnable = new Runnable() {
+    private final Runnable mDismissRunnableRight = new Runnable() {
         @Override
         public void run() {
-            processPendingDismisses();
+            processPendingDismisses(true);
         }
     };
-    private long mDismissDelayMillis = -1; // negative to disable automatic dismissing
+    private final Runnable mDismissRunnableLeft = new Runnable() {
+        @Override
+        public void run() {
+            processPendingDismisses(false);
+        }
+    };
+    private long mDismissDelayMillisRight = -1; // negative to disable automatic dismissing
+    private long mDismissDelayMillisLeft = -1; // negative to disable automatic dismissing
 
     public class RowContainer {
 
@@ -216,8 +226,12 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
      * Set to a negative value to disable automatic dismissing items.
      * @param dismissDelayMillis The delay between onPendingDismiss and onDismiss calls, in milliseconds.
      */
-    public void setDismissDelay(long dismissDelayMillis) {
-        this.mDismissDelayMillis = dismissDelayMillis;
+    public void setDismissDelayRight(long dismissDelayMillis) {
+        this.mDismissDelayMillisRight = dismissDelayMillis;
+    }
+
+    public void setDismissDelayLeft(long dismissDelayMillis) {
+        this.mDismissDelayMillisLeft = dismissDelayMillis;
     }
 
     /**
@@ -233,7 +247,8 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
         return mRecyclerView.makeScrollListener(new AbsListView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(AbsListView absListView, int scrollState) {
-                processPendingDismisses();
+                processPendingDismisses(true);
+                processPendingDismisses(false);
                 setEnabled(scrollState != AbsListView.OnScrollListener.SCROLL_STATE_TOUCH_SCROLL);
             }
 
@@ -269,10 +284,10 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
                     child = mRecyclerView.getChildAt(i);
                     child.getHitRect(rect);
                     if (rect.contains(x, y)) {
-                        assert child instanceof ViewGroup &&
+/*                        assert child instanceof ViewGroup &&
                                 ((ViewGroup) child).getChildCount() == 2 :
                                 "Each child needs to extend from ViewGroup and have two children";
-
+*/
                         boolean dataContainerHasBeenDismissed = mPendingDismiss != null &&
                                 mPendingDismiss.position == mRecyclerView.getChildPosition(child) &&
                                 mPendingDismiss.rowContainer.dataContainerHasBeenDismissed;
@@ -369,6 +384,7 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
                             .setDuration(mAnimationTime)
                             .setListener(null);
                 }
+
                 mVelocityTracker.recycle();
                 mVelocityTracker = null;
                 mDownX = 0;
@@ -376,6 +392,7 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
                 mRowContainer = null;
                 mDownPosition = ListView.INVALID_POSITION;
                 mSwiping = false;
+
                 break;
             }
 
@@ -441,10 +458,10 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
         // Animate the dismissed list item to zero-height and fire the dismiss callback when
         // all dismissed list item animations have completed. This triggers layout on each animation
         // frame; in the future we may want to do something smarter and more performant.
-        if (mPendingDismiss != null) {
+        if (mPendingDismiss != null && mPendingDismiss.swipingRight == swipingRight) {
             boolean dismissingDifferentRow = mPendingDismiss.position != dismissPosition;
             int newPosition = mPendingDismiss.position < dismissPosition ? dismissPosition-1 : dismissPosition;
-            processPendingDismisses();
+            processPendingDismisses(swipingRight);
             if (dismissingDifferentRow) {
                 addPendingDismiss(dismissView, newPosition, swipingRight);
             }
@@ -462,10 +479,24 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
         mPendingDismiss = new PendingDismissData(dismissPosition, dismissView, swipingRight);
         // Notify the callbacks
         mCallbacks.onPendingDismiss(mRecyclerView, dismissPosition, swipingRight);
-        // Automatically dismiss the item after a certain delay
-        if(mDismissDelayMillis >= 0)
-            mHandler.removeCallbacks(mDismissRunnable);
-            mHandler.postDelayed(mDismissRunnable, mDismissDelayMillis);
+
+        mHandler.removeCallbacks(mDismissRunnableRight);
+        mHandler.removeCallbacks(mDismissRunnableLeft);
+
+        if (swipingRight)
+        {
+            if (mDismissDelayMillisRight >= 0)
+            {
+                mHandler.postDelayed(mDismissRunnableRight, mDismissDelayMillisRight);
+            }
+        }
+        else
+        {
+            if (mDismissDelayMillisLeft >= 0)
+            {
+                mHandler.postDelayed(mDismissRunnableLeft, mDismissDelayMillisLeft);
+            }
+        }
     }
 
     /**
@@ -473,9 +504,10 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
      * dismiss of the item.
      * @return whether there were any pending rows to be dismissed.
      */
-    public boolean processPendingDismisses() {
-        boolean existPendingDismisses = existPendingDismisses();
-        if (existPendingDismisses) processPendingDismisses(mPendingDismiss);
+    public boolean processPendingDismisses(boolean right) {
+        boolean existPendingDismisses = existPendingDismisses(right);
+        if (existPendingDismisses)
+            processPendingDismisses(mPendingDismiss);
         return existPendingDismisses;
     }
 
@@ -483,8 +515,20 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
      * Whether a row has been dismissed and is waiting for confirmation
      * @return whether there are any pending rows to be dismissed.
      */
-    public boolean existPendingDismisses() {
-        return mPendingDismiss != null && mPendingDismiss.rowContainer.dataContainerHasBeenDismissed;
+    public boolean existPendingDismisses(boolean right) {
+        return mPendingDismiss != null && mPendingDismiss.swipingRight == right && mPendingDismiss.rowContainer.dataContainerHasBeenDismissed;
+    }
+
+    private void doUndoPendingDismiss()
+    {
+        if (mPendingDismiss != null)
+        {
+            mPendingDismiss.rowContainer.leftContainer.setVisibility(View.GONE);
+            mPendingDismiss.rowContainer.rightContainer.setVisibility(View.GONE);
+            mPendingDismiss.rowContainer.dataContainer.animate().translationX(0).alpha(1).setDuration(mAnimationTime).setListener(null);
+        }
+        mPendingDismiss = null;
+        Toast.makeText(mRecyclerView.getContext(), "Canceled", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -492,18 +536,10 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
      * container reappear.
      * @return whether there were any pending rows to be dismissed.
      */
-    public boolean undoPendingDismiss() {
-        boolean existPendingDismisses = existPendingDismisses();
+    public boolean undoPendingDismiss(boolean right) {
+        boolean existPendingDismisses = existPendingDismisses(right);
         if (existPendingDismisses) {
-            mPendingDismiss.rowContainer.leftContainer.setVisibility(View.GONE);
-            mPendingDismiss.rowContainer.rightContainer.setVisibility(View.GONE);
-            mPendingDismiss.rowContainer.dataContainer
-                    .animate()
-                    .translationX(0)
-                    .alpha(1)
-                    .setDuration(mAnimationTime)
-                    .setListener(null);
-            mPendingDismiss = null;
+            doUndoPendingDismiss();
         }
         return existPendingDismisses;
     }
