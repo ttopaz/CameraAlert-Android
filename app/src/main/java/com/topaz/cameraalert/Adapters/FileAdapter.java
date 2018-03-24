@@ -2,6 +2,7 @@ package com.topaz.cameraalert.Adapters;
 
 import android.content.Context;
 import android.graphics.Typeface;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,18 +10,20 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.topaz.cameraalert.Utils.ImageManager;
 import com.topaz.cameraalert.Utils.RESTMgr;
 import com.topaz.cameraalert.Model.CameraFile;
 import com.topaz.cameraalert.R;
-import com.topaz.cameraalert.Utils.ImageDownloader;
+import com.topaz.cameraalert.Utils.ImageManager;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * Created by Tony on 2/11/2017.
  */
-public class FileAdapter extends ArrayAdapter<CameraFile>
+public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder>
 {
     private final Context context;
     private ArrayList<CameraFile> itemsArrayList;
@@ -29,7 +32,7 @@ public class FileAdapter extends ArrayAdapter<CameraFile>
 
     public FileAdapter(Context context, ArrayList<CameraFile> itemsArrayList)
     {
-        super(context, R.layout.file_row, itemsArrayList);
+//        super(context, R.layout.file_row, itemsArrayList);
 
         this.context = context;
         this.itemsArrayList = itemsArrayList;
@@ -44,44 +47,17 @@ public class FileAdapter extends ArrayAdapter<CameraFile>
     }
 
     @Override
-    public int getCount() {
-        return this.itemsArrayList.size();
+    public FileViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+        View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.file_row, null);
+
+        FileViewHolder holder = new FileViewHolder(view);
+
+        return holder;
     }
 
     @Override
-    public CameraFile getItem(int position) {
-        return this.itemsArrayList.get(position);
-    }
-
-    @Override
-    public long getItemId(int position) {
-        return position;
-    }
-
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent)
-    {
-        CameraFile file = itemsArrayList.get(position);
-
-        ViewHolder holder;
-        if (convertView == null)
-        {
-            convertView = inflater.inflate(R.layout.file_row, parent, false);
-
-            holder = new ViewHolder();
-
-            holder.dateView = (TextView) convertView.findViewById(R.id.file_date);
-            holder.timeView = (TextView) convertView.findViewById(R.id.file_time_range);
-            //                holder.fileNameView = (TextView) convertView.findViewById(R.id.file_name);
-            holder.fileSizeView = (TextView) convertView.findViewById(R.id.file_size);
-            holder.imageView = (ImageView) convertView.findViewById(R.id.thumbImage);
-            //                holder.viewSwitcher = (ViewSwitcher)convertView.findViewById(R.id.list_switcher);
-
-            convertView.setTag(holder);
-        }
-        else {
-            holder = (ViewHolder) convertView.getTag();
-        }
+    public void onBindViewHolder(FileViewHolder holder, int i) {
+        CameraFile file = this.itemsArrayList.get(i);
 
         android.text.format.Formatter formatter = new android.text.format.Formatter();
 
@@ -94,28 +70,49 @@ public class FileAdapter extends ArrayAdapter<CameraFile>
         String timeText = android.text.format.DateFormat.format("hh:mm:ss a - ", file.CreateDate).toString()
                 + android.text.format.DateFormat.format("hh:mm:ss a", file.Date);
         holder.timeView.setText(timeText);
-        //            holder.fileNameView.setText(file.File);
         holder.fileSizeView.setText(formatter.formatFileSize(this.context, file.Size));
         holder.dateView.setTypeface(null, file.Changed ? Typeface.BOLD : Typeface.NORMAL);
         holder.timeView.setTypeface(null, file.Changed ? Typeface.BOLD : Typeface.NORMAL);
-        //            holder.fileNameView.setTypeface(null, file.Changed ? Typeface.BOLD : Typeface.NORMAL);
 
-        if (holder.imageView != null) {
-            //      Drawable placeholder = holder.imageView.getContext().getResources().getDrawable(R.drawable.placeholder);
-            //    holder.imageView.setImageDrawable(placeholder);
-
+        if (holder.imageView != null)
+        {
             String imageUrl = RESTMgr.getInstance().getCameraImageUrl(file.CameraId, file.File.replace(".mp4", ".jpg"));
-            new ImageDownloader(holder.imageView).execute(imageUrl, file.CameraId);
+            ImageManager.getInstance().getImage(imageUrl, holder.imageView);
         }
-        return convertView;
     }
 
-    class ViewHolder {
+    @Override
+    public int getItemCount() {
+        return this.itemsArrayList.size();
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+
+    public CameraFile getItem(int position) {
+        return this.itemsArrayList.get(position);
+    }
+
+    public void remove(CameraFile file)
+    {
+        this.itemsArrayList.remove(file);
+    }
+
+    class FileViewHolder extends RecyclerView.ViewHolder {
         TextView dateView;
         TextView timeView;
-        TextView fileNameView;
         TextView fileSizeView;
         ImageView imageView;
-        //            ViewSwitcher viewSwitcher;
+
+        public FileViewHolder(View view) {
+            super(view);
+
+            this.dateView = (TextView) view.findViewById(R.id.file_date);
+            this.timeView = (TextView) view.findViewById(R.id.file_time_range);
+            this.fileSizeView = (TextView) view.findViewById(R.id.file_size);
+            this.imageView = (ImageView) view.findViewById(R.id.thumbImage);
+        }
     }
 }

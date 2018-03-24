@@ -266,13 +266,17 @@ public class MediaPlayer {
     mContext = ctx;
 
     String LIB_ROOT;
-    if(VERSION.SDK_INT > 20) {
+    if (VERSION.SDK_INT > 20 && VERSION.SDK_INT < 24)
+    { LIB_ROOT = ""; }
+    else
+    { LIB_ROOT = Vitamio.getLibraryPath(); }
+    /*if(VERSION.SDK_INT > 20) {
         LIB_ROOT = "";
     }
     else{
     	LIB_ROOT = Vitamio.getLibraryPath();
     }
-
+*/
     if (preferHWDecoder) {
       if (!NATIVE_OMX_LOADED.get()) {
         if (Build.VERSION.SDK_INT > 17)
@@ -308,12 +312,16 @@ public class MediaPlayer {
 
   static {
 	String LIB_ROOT;
-    if(VERSION.SDK_INT > 20) {
+    if (VERSION.SDK_INT > 20 && VERSION.SDK_INT < 24)
+    { LIB_ROOT = ""; }
+    else
+    { LIB_ROOT = Vitamio.getLibraryPath(); }
+  /*  if(VERSION.SDK_INT > 20) {
         LIB_ROOT = "";
     }
     else{
     	LIB_ROOT = Vitamio.getLibraryPath();
-    }
+    }*/
     try {
     
   

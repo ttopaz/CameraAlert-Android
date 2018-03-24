@@ -17,6 +17,8 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.ContextMenu;
 import android.view.MenuInflater;
@@ -28,11 +30,16 @@ import android.widget.AdapterView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.topaz.cameraalert.Activities.SettingsActivity;
 import com.topaz.cameraalert.Activities.VideoViewActivity;
 import com.topaz.cameraalert.ListViewSwipe.ListViewAdapter;
+import com.topaz.cameraalert.ListViewSwipe.OnItemClickListener;
+import com.topaz.cameraalert.ListViewSwipe.RecyclerViewAdapter;
 import com.topaz.cameraalert.ListViewSwipe.SwipeToDismissTouchListener;
+import com.topaz.cameraalert.ListViewSwipe.SwipeableItemClickListener;
+import com.topaz.cameraalert.Utils.ImageManager;
 import com.topaz.cameraalert.Utils.RESTMgr;
 import com.topaz.cameraalert.Model.Camera;
 import com.topaz.cameraalert.Model.CameraFile;
@@ -59,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private NotificationReceiver nReceiver;
     private boolean showChangedOnly = false;
     private int switchedIndex = -1;
-    private SwipeToDismissTouchListener<ListViewAdapter> touchListener;
+    private SwipeToDismissTouchListener<RecyclerViewAdapter> touchListener;
     private static final int TIME_TO_AUTOMATICALLY_DISMISS_ITEM = 1000;
 
     @Override
@@ -78,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh);
         swipeRefreshLayout.setOnRefreshListener(this);
 
-        final ListView lv = (ListView) findViewById(R.id.cameraFiles);
+        final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
         registerForContextMenu(lv);
 
         initListView(lv);
@@ -139,87 +146,96 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     }
 
-    private void initListView(final ListView listView)
+    private void initListView(final RecyclerView listView)
     {
         final FileAdapter adapter = new FileAdapter(getApplicationContext(), cameraFiles);
 
+        listView.setLayoutManager(new LinearLayoutManager(this));
+
         listView.setAdapter(adapter);
 
-        touchListener =
-                new SwipeToDismissTouchListener<>(
-                        new ListViewAdapter(listView),
-                        new SwipeToDismissTouchListener.DismissCallbacks<ListViewAdapter>()
-                        {
-                            @Override
-                            public boolean canDismiss(int position, boolean swipingRight)
-                            {
-
-                                View row = listView.getChildAt(position - listView.getFirstVisiblePosition());
-                                if (row != null)
-                                {
-                                    TextView text = (TextView) row.findViewById(R.id.txt_mark);
-
-                                    CameraFile file = cameraFiles.get(position);
-                                    if (file != null)
-                                    {
-                                        if (file.Changed)
-                                            text.setText("MARK  ");
-                                        else
-                                            text.setText("UNMARK  ");
-                                    }
-                                }
-                                return true;
-                            }
-
-                            @Override
-                            public void onPendingDismiss(ListViewAdapter recyclerView, int position, boolean swipingRight)
-                            {
-
-                            }
-
-                            @Override
-                            public void onStartSwipe(ListViewAdapter recyclerView, int position)
-                            {
-
-                            }
-
-                            @Override
-                            public void onDismiss(ListViewAdapter view, int position, boolean swipingRight)
-                            {
-                                final ListView lv = (ListView) findViewById(R.id.cameraFiles);
-                                CameraFile obj = (CameraFile) lv.getItemAtPosition(position);
-                                if (swipingRight)
-                                    deleteFile(obj, false);
-                                else
-                                {
-                                    if (obj.Changed)
-                                        markRead(obj);
-                                    else
-                                        markUnread(obj);
-                                }
-                            }
-                        });
-
-        touchListener.setDismissDelay(TIME_TO_AUTOMATICALLY_DISMISS_ITEM);
-        listView.setOnTouchListener(touchListener);
-        // Setting this scroll listener is required to ensure that during ListView scrolling,
-        // we don't look for swipes.
-        listView.setOnScrollListener((AbsListView.OnScrollListener) touchListener.makeScrollListener());
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        touchListener = new SwipeToDismissTouchListener<>(
+                        new RecyclerViewAdapter(listView),
+                        new SwipeToDismissTouchListener.DismissCallbacks<RecyclerViewAdapter>()
         {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+            public void onStartSwipe(RecyclerViewAdapter recyclerView, int position)
             {
-                if (touchListener.existPendingDismisses())
+
+            }
+
+            @Override
+            public boolean canDismiss(int position, boolean swipingRight)
+            {
+                int firstPos = ((LinearLayoutManager)listView.getLayoutManager()).findFirstVisibleItemPosition();
+                View row = listView.getChildAt(position - firstPos);
+                if (row != null)
                 {
-                    touchListener.undoPendingDismiss();
+                    TextView text = (TextView) row.findViewById(R.id.txt_mark);
+
+                    CameraFile file = cameraFiles.get(position);
+                    if (file != null)
+                    {
+                        if (file.Changed)
+                            text.setText("MARK  ");
+                        else
+                            text.setText("UNMARK  ");
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void onPendingDismiss(RecyclerViewAdapter recyclerView, int position, boolean swipingRight)
+            {
+            }
+
+            @Override
+            public void onDismiss(RecyclerViewAdapter view, int position, boolean swipingRight)
+            {
+                final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
+                CameraFile obj = ((FileAdapter)lv.getAdapter()).getItem(position);
+
+                if (swipingRight)
+                {
+                    Toast.makeText(MainActivity.this, "Deleted", Toast.LENGTH_SHORT).show();
+                    deleteFile(obj, false);
                 }
                 else
                 {
-                    playFile(cameraFiles.get(position));
+                    if (obj.Changed)
+                        markRead(obj);
+                    else
+                        markUnread(obj);
                 }
             }
         });
+
+        touchListener.setDismissDelayRight(TIME_TO_AUTOMATICALLY_DISMISS_ITEM);
+        touchListener.setDismissDelayLeft(10);
+
+
+        listView.setOnTouchListener(touchListener);
+        listView.setOnScrollListener((RecyclerView.OnScrollListener)touchListener.makeScrollListener());
+        listView.addOnItemTouchListener(new SwipeableItemClickListener(this,
+            new OnItemClickListener() {
+                @Override
+                public void onItemClick(View view, int position)
+                {
+                    if (view.getId() == R.id.txt_delete)
+                    {
+                        touchListener.processPendingDismisses(true);
+                    }
+                    else if (view.getId() == R.id.txt_undo)
+                    {
+                        touchListener.undoPendingDismiss(true);
+                    }
+                    else
+                    {
+                        playFile(cameraFiles.get(position));
+                    }
+                }
+            }));
     }
     private boolean isListenerServiceRunnning()
     {
@@ -286,11 +302,12 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo)
     {
-        if (touchListener != null && touchListener.existPendingDismisses())
+        super.onCreateContextMenu(menu, v, menuInfo);
+        if (touchListener != null
+                && (touchListener.existPendingDismisses(true) || touchListener.existPendingDismisses(false)))
         {
             return;
         }
-        super.onCreateContextMenu(menu, v, menuInfo);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.file_menu, menu);
     }
@@ -299,8 +316,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     public boolean onContextItemSelected(MenuItem item)
     {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-        final ListView lv = (ListView) findViewById(R.id.cameraFiles);
-        CameraFile obj = (CameraFile) lv.getItemAtPosition(info.position);
+        final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
+        CameraFile obj = ((FileAdapter)lv.getAdapter()).getItem(info.position);
         switch (item.getItemId())
         {
             case R.id.play_file:
@@ -417,9 +434,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             @Override
             public void onTaskCompleted(Object result)
             {
-                final ListView lv = (ListView) findViewById(R.id.cameraFiles);
-//                if (removeFromList)
-                    ((FileAdapter) lv.getAdapter()).remove(obj);
+                final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
+                ((FileAdapter) lv.getAdapter()).remove(obj);
                 cameraFiles.remove(obj);
                 ((FileAdapter) lv.getAdapter()).notifyDataSetChanged();
             }
@@ -432,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         Set<String> readFiles = settings.getStringSet(key, new HashSet<String>());
 
-        final ListView lv = (ListView) findViewById(R.id.cameraFiles);
+        final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
 
         if (obj == null)
         {
@@ -456,7 +472,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 {
                     readFiles.add(Integer.toString(cameraFiles.get(index).File.hashCode()));
                     cameraFiles.get(index).Changed = false;
-                    View rowView = lv.getChildAt(index - lv.getFirstVisiblePosition());
+                    int firstPos = ((LinearLayoutManager)lv.getLayoutManager()).findFirstVisibleItemPosition();
+                    View rowView = lv.getChildAt(index - firstPos);
                     if (rowView != null)
                     {
                         TextView date = (TextView) rowView.findViewById(R.id.file_date);
@@ -479,7 +496,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             obj.Changed = false;
 
             int index = cameraFiles.indexOf(obj);
-            View rowView = lv.getChildAt(index - lv.getFirstVisiblePosition());
+            int firstPos = ((LinearLayoutManager)lv.getLayoutManager()).findFirstVisibleItemPosition();
+            View rowView = lv.getChildAt(index - firstPos);
             if (rowView != null)
             {
                 if (showChangedOnly)
@@ -509,7 +527,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         Set<String> readFiles = settings.getStringSet(key, new HashSet<String>());
 
-        final ListView lv = (ListView) findViewById(R.id.cameraFiles);
+        final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
 
         if (obj == null)
         {
@@ -518,7 +536,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             for (int index = 0; index < cameraFiles.size(); index++)
             {
                 cameraFiles.get(index).Changed = true;
-                View rowView = lv.getChildAt(index - lv.getFirstVisiblePosition());
+                int firstPos = ((LinearLayoutManager)lv.getLayoutManager()).findFirstVisibleItemPosition();
+                View rowView = lv.getChildAt(index - firstPos);
                 if (rowView != null)
                 {
                     TextView date = (TextView) rowView.findViewById(R.id.file_date);
@@ -539,7 +558,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             }
             obj.Changed = true;
             int index = cameraFiles.indexOf(obj);
-            View rowView = lv.getChildAt(index - lv.getFirstVisiblePosition());
+            int firstPos = ((LinearLayoutManager)lv.getLayoutManager()).findFirstVisibleItemPosition();
+            View rowView = lv.getChildAt(index - firstPos);
             if (rowView != null)
             {
                 TextView date = (TextView) rowView.findViewById(R.id.file_date);
@@ -606,8 +626,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         final SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         cameraFiles = new ArrayList<CameraFile>();
-        final ListView lv = (ListView) findViewById(R.id.cameraFiles);
+        final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
+        lv.setTag(null);
         lv.setAdapter(null);
+
+        ImageManager.getInstance().cancelDownloads();
 
         final String cameraId = Integer.toString(cameras.get(cameraIndex).Id);
         final int days = Integer.parseInt(settings.getString("days", "2"));
@@ -656,10 +679,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     }
                 });
 
-                final ListView lv = (ListView) findViewById(R.id.cameraFiles);
+                final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
                 ViewCompat.setNestedScrollingEnabled(lv, true);
 
-                ListAdapter adapter = lv.getAdapter();
+                RecyclerView.Adapter adapter = lv.getAdapter();
 
                 if (adapter == null)
                 {

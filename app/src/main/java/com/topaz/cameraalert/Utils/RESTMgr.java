@@ -46,7 +46,7 @@ public class RESTMgr
         void onTaskCompleted(Object result);
     }
 
-    private static RESTMgr Instance;
+    private static RESTMgr instance;
     private String serverIP;
     private int serverPort;
     private Context appContext;
@@ -56,9 +56,9 @@ public class RESTMgr
 
     public static RESTMgr getInstance()
     {
-        if (Instance == null)
-            Instance = new RESTMgr();
-        return Instance;
+        if (instance == null)
+            instance = new RESTMgr();
+        return instance;
     }
 
     public void updateSettings(Context context)

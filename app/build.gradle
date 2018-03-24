@@ -5,7 +5,7 @@ android {
     buildToolsVersion "23.0.3"
     useLibrary  'org.apache.http.legacy'
     defaultConfig {
-        applicationId "com.example.tony.cameraalert"
+        applicationId "com.topaz.cameraalert"
         minSdkVersion 19
         targetSdkVersion 20
         versionCode 1
@@ -24,6 +24,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.android.support:design:23.1.1'
+    compile 'com.android.support:recyclerview-v7:23.0.0'
     compile files('libs/gson-2.2.4.jar')
     compile files('libs/gson-2.2.4-javadoc.jar')
     compile files('libs/gson-2.2.4-sources.jar')
