@@ -81,6 +81,14 @@
         android:maxLines="1" />
 
     <CheckBoxPreference
+        android:key="monitorEvents"
+        android:title="Monitor Camera Events"
+        android:defaultValue="true"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:maxLines="1" />
+
+    <CheckBoxPreference
         android:key="internalPlayer"
         android:title="Use Internal Player"
         android:defaultValue="false"
