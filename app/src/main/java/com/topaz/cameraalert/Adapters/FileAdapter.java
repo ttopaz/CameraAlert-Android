@@ -77,7 +77,10 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         if (holder.imageView != null)
         {
             String imageUrl = RESTMgr.getInstance().getCameraImageUrl(file.CameraId, file.File.replace(".mp4", ".jpg"));
-            ImageManager.getInstance().getImage(imageUrl, holder.imageView);
+            if (imageUrl != null)
+            {
+                ImageManager.getInstance().getImage(imageUrl, holder.imageView);
+            }
         }
     }
 

@@ -74,7 +74,6 @@ public class RESTMgr
 
     private String getServerAddress()
     {
- //       return "http://admin:admin@192.168.1.120:3000";
         return String.format("http://%s:%s@%s:%d", USERNAME, PASSWORD, serverIP, serverPort);
     }
 
@@ -150,6 +149,22 @@ public class RESTMgr
         return getServerAddress() + "/GetCameraImage?Id=" + cameraId + "&File=" + file;
     }
 
+    public void getCameraEvent(String cameraId, OnTaskCompleted listener)
+    {
+        final String basicAuth = getAuth();
+        new GetTask(listener)
+                .addHeader("Authorization", basicAuth)
+                .execute(getServerAddress() + "/GetCameraEvent?Id=" + cameraId);
+    }
+
+    public void getEvents(OnTaskCompleted listener)
+    {
+        final String basicAuth = getAuth();
+        new GetTask(listener, true)
+                .addHeader("Authorization", basicAuth)
+                .execute(getServerAddress() + "/GetEvents");
+    }
+
     public void getCameraImage(String url, OnTaskCompleted listener)
     {
         final String basicAuth = getAuth();
@@ -184,11 +199,21 @@ public class RESTMgr
         private String responseString = null;
         private HashMap<String, String> headers;
         private ProgressDialog progressDialog;
+        private boolean showProgess;
 
-        public GetTask(OnTaskCompleted listener)
+        public GetTask(OnTaskCompleted listener, boolean... noProgress)
         {
             this.listener = listener;
             headers = new HashMap<String, String>();
+
+            if (noProgress.length > 0)
+            {
+                showProgess = !noProgress[0];
+            }
+            else
+            {
+                showProgess = true;
+            }
         }
 
         public GetTask addHeader(String key, String value)
@@ -199,9 +224,12 @@ public class RESTMgr
 
         @Override
         protected void onPreExecute() {
-            progressDialog= new ProgressDialog(appContext);
-            progressDialog.setMessage("Please wait...");
-            progressDialog.show();
+            if (showProgess)
+            {
+                progressDialog = new ProgressDialog(appContext);
+                progressDialog.setMessage("Please wait...");
+                progressDialog.show();
+            }
             super.onPreExecute();
         }
 
@@ -249,8 +277,12 @@ public class RESTMgr
         protected void onPostExecute(String result)
         {
             super.onPostExecute(result);
-            if (progressDialog.isShowing())
-                progressDialog.dismiss();
+
+            if (showProgess)
+            {
+                if (progressDialog.isShowing())
+                    progressDialog.dismiss();
+            }
             try
             {
                 if (this.responseString != null)

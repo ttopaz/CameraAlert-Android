@@ -1,7 +1,10 @@
 package com.topaz.cameraalert.Activities;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.media.Ringtone;
@@ -20,7 +23,9 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 
 
+import com.topaz.cameraalert.MainActivity;
 import com.topaz.cameraalert.R;
+import com.topaz.cameraalert.Services.CameraEventService;
 
 import java.util.List;
 
@@ -43,7 +48,6 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
      * shown on tablets.
      */
     private static final boolean ALWAYS_SIMPLE_PREFS = true;
-
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -77,14 +81,16 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
 
         // Add 'general' preferences.
         addPreferencesFromResource(R.xml.pref_general);
-//        bindPreferenceSummaryToValue(findPreference("debugMode"));
+
         bindPreferenceSummaryToValue(findPreference("debugServerIP"));
         bindPreferenceSummaryToValue(findPreference("prodServerIP"));
         bindPreferenceSummaryToValue(findPreference("serverPort"));
         bindPreferenceSummaryToValue(findPreference("days"));
-//        bindPreferenceSummaryToValue(findPreference("notifyMonitor"));
+
         bindPreferenceSummaryToValue(findPreference("serverMonitor"));
         bindPreferenceSummaryToValue(findPreference("sound"));
+
+        findPreference("monitorEvents").setOnPreferenceChangeListener(runServiceListener);
     }
 
     /** {@inheritDoc} */
@@ -124,11 +130,41 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         }
     }
 
+    private static Preference.OnPreferenceChangeListener runServiceListener = new Preference.OnPreferenceChangeListener() {
+
+        @Override
+        public boolean onPreferenceChange(Preference preference, Object value) {
+
+            boolean serviceRunning = CameraEventService.isRunning(preference.getContext());
+
+            if ((boolean)value != serviceRunning)
+            {
+                try
+                {
+                    if (serviceRunning)
+                    {
+                        preference.getContext().stopService(new Intent(preference.getContext(), CameraEventService.class));
+                    }
+                    else
+                    {
+                        preference.getContext().startService(new Intent(preference.getContext(), CameraEventService.class));
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                }
+            }
+
+            return true;
+        }
+    };
+
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
      */
-    private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
+    private static Preference.OnPreferenceChangeListener bindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
             String stringValue = value.toString();
@@ -142,45 +178,6 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
 
             preference.setSummary(stringValue);
 
-/*            if (preference instanceof ListPreference) {
-                // For list preferences, look up the correct display value in
-                // the preference's 'entries' list.
-                ListPreference listPreference = (ListPreference) preference;
-                int index = listPreference.findIndexOfValue(stringValue);
-
-                // Set the summary to reflect the new value.
-                preference.setSummary(
-                        index >= 0
-                                ? listPreference.getEntries()[index]
-                                : null);
-
-            } else if (preference instanceof RingtonePreference) {
-                // For ringtone preferences, look up the correct display value
-                // using RingtoneManager.
-                if (TextUtils.isEmpty(stringValue)) {
-                    // Empty values correspond to 'silent' (no ringtone).
-                    preference.setSummary(R.string.pref_ringtone_silent);
-
-                } else {
-                    Ringtone ringtone = RingtoneManager.getRingtone(
-                            preference.getContext(), Uri.parse(stringValue));
-
-                    if (ringtone == null) {
-                        // Clear the summary if there was a lookup error.
-                        preference.setSummary(null);
-                    } else {
-                        // Set the summary to reflect the new ringtone display
-                        // name.
-                        String name = ringtone.getTitle(preference.getContext());
-                        preference.setSummary(name);
-                    }
-                }
-
-            } else {
-                // For all other preferences, set the summary to the value's
-                // simple string representation.
-                preference.setSummary(stringValue);
-            }*/
             return true;
         }
     };
@@ -192,15 +189,15 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
      * immediately updated upon calling this method. The exact display format is
      * dependent on the type of preference.
      *
-     * @see #sBindPreferenceSummaryToValueListener
+     * @see #bindPreferenceSummaryToValueListener
      */
     private static void bindPreferenceSummaryToValue(Preference preference) {
         // Set the listener to watch for value changes.
-        preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
+        preference.setOnPreferenceChangeListener(bindPreferenceSummaryToValueListener);
 
         // Trigger the listener immediately with the preference's
         // current value.
-        sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+        bindPreferenceSummaryToValueListener.onPreferenceChange(preference,
                 PreferenceManager
                         .getDefaultSharedPreferences(preference.getContext())
                         .getString(preference.getKey(), ""));
@@ -235,13 +232,6 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-   //         addPreferencesFromResource(R.xml.pref_notification);
-
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
-       //     bindPreferenceSummaryToValue(findPreference("notifications_new_message_ringtone"));
         }
     }
 
@@ -254,13 +244,6 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-     //       addPreferencesFromResource(R.xml.pref_data_sync);
-
-            // Bind the summaries of EditText/List/Dialog/Ringtone preferences
-            // to their values. When their values change, their summaries are
-            // updated to reflect the new value, per the Android Design
-            // guidelines.
-//            bindPreferenceSummaryToValue(findPreference("sync_frequency"));
         }
     }
 }
