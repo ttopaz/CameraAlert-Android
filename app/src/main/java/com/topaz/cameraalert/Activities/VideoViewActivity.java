@@ -51,8 +51,7 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
         downloadRateView = (TextView) findViewById(R.id.download_rate);
         loadRateView = (TextView) findViewById(R.id.load_rate);
 
-
-      //  videoview.setHardwareDecoder(true);
+        videoview.setHardwareDecoder(true);
 
         try {
             // Start the MediaController
