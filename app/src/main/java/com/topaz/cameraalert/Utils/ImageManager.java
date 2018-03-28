@@ -25,10 +25,6 @@ public class ImageManager
     private LruCache<String, Bitmap> memoryCache;
     private ArrayList<WeakReference<ImageDownloader>> downloaders;
 
-    public interface OnImageCompleted {
-        void OnImageCompleted(Object result);
-    }
-
     public static ImageManager getInstance()
     {
         if (instance == null)
@@ -85,13 +81,15 @@ public class ImageManager
         }
     }
 
-    public void getImage(String url, ImageView imageView)
+    public ImageDownloader getImage(String url, ImageView imageView)
     {
-        Bitmap bitmap = getBitmapFromMemCache(url);
+        final String imageKey = String.valueOf(url);
 
+        final Bitmap bitmap = getBitmapFromMemCache(imageKey);
         if (bitmap != null)
         {
             imageView.setImageBitmap(bitmap);
+            return null;
         }
         else
         {
@@ -102,6 +100,8 @@ public class ImageManager
                 downloaders.add(new WeakReference<ImageDownloader>(task));
             }
             task.execute(url);
+
+            return task;
         }
     }
 
@@ -110,7 +110,7 @@ public class ImageManager
      */
     public class ImageDownloader extends AsyncTask<String, Void, Bitmap>
     {
-        private WeakReference<ImageView> imageViewReference;
+        private final WeakReference<ImageView> imageViewReference;
 
         public ImageDownloader(ImageView imageView)
         {
@@ -164,7 +164,6 @@ public class ImageManager
                 URL uri = new URL(url);
 
                 urlConnection = (HttpURLConnection) uri.openConnection();
-                urlConnection.setReadTimeout(1000);
                 urlConnection.setRequestProperty("Authorization", RESTMgr.getInstance().getAuth());
                 urlConnection.connect();
                 int statusCode = urlConnection.getResponseCode();
