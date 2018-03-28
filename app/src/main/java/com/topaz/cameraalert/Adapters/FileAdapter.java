@@ -29,7 +29,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     private final Context context;
     private ArrayList<CameraFile> itemsArrayList;
     private LayoutInflater inflater;
-    private RESTMgr restMgr;
+    private RESTMgr _service;
+    private ImageManager _imageService;
 
     public FileAdapter(Context context, ArrayList<CameraFile> itemsArrayList)
     {
@@ -37,6 +38,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         this.itemsArrayList = itemsArrayList;
 
         inflater = LayoutInflater.from(context);
+        _service = RESTMgr.getInstance();
+        _imageService = ImageManager.getInstance();
     }
 
     public void setData(ArrayList<CameraFile> itemsArrayList)
@@ -73,10 +76,11 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
         if (holder.imageView != null)
         {
-            String imageUrl = RESTMgr.getInstance().getCameraImageUrl(file.CameraId, file.File.replace(".mp4", ".jpg"));
+            String imageUrl = _service.getCameraImageUrl(file.CameraId, file.File.replace(".mp4", ".jpg"));
             if (imageUrl != null)
             {
-                ImageManager.getInstance().getImage(imageUrl, holder.imageView);
+                holder.getImage(imageUrl);
+//                _imageService.getImage(imageUrl, holder.imageView);
             }
         }
     }
@@ -88,7 +92,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
     @Override
     public long getItemId(int position) {
-        return position;
+        return -1;
+//        return position;
     }
 
     public CameraFile getItem(int position) {
@@ -106,6 +111,8 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         TextView fileSizeView;
         ImageView imageView;
 
+        private ImageManager.ImageDownloader _imageRequest;
+
         public FileViewHolder(View view) {
             super(view);
 
@@ -113,6 +120,19 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             this.timeView = (TextView) view.findViewById(R.id.file_time_range);
             this.fileSizeView = (TextView) view.findViewById(R.id.file_size);
             this.imageView = (ImageView) view.findViewById(R.id.thumbImage);
+        }
+
+        public void getImage(String imageUrl)
+        {
+            if (_imageRequest != null)
+            {
+                if (!_imageRequest.isCancelled())
+                {
+                    _imageRequest.cancel(false);
+                }
+            }
+
+            _imageRequest = _imageService.getImage(imageUrl, this.imageView);
         }
     }
 }
