@@ -3,6 +3,7 @@ package com.topaz.cameraalert.Adapters;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.support.v7.widget.RecyclerView;
+import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,8 +33,6 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
     public FileAdapter(Context context, ArrayList<CameraFile> itemsArrayList)
     {
-//        super(context, R.layout.file_row, itemsArrayList);
-
         this.context = context;
         this.itemsArrayList = itemsArrayList;
 
@@ -59,8 +58,6 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
     public void onBindViewHolder(FileViewHolder holder, int i) {
         CameraFile file = this.itemsArrayList.get(i);
 
-        android.text.format.Formatter formatter = new android.text.format.Formatter();
-
         String dateString = android.text.format.DateFormat.format("MM/dd/yyyy", file.Date).toString();
         String todayString = android.text.format.DateFormat.format("MM/dd/yyyy", new Date()).toString();
         if (dateString.compareTo(todayString) == 0)
@@ -70,7 +67,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         String timeText = android.text.format.DateFormat.format("hh:mm:ss a - ", file.CreateDate).toString()
                 + android.text.format.DateFormat.format("hh:mm:ss a", file.Date);
         holder.timeView.setText(timeText);
-        holder.fileSizeView.setText(formatter.formatFileSize(this.context, file.Size));
+        holder.fileSizeView.setText(Formatter.formatFileSize(this.context, file.Size));
         holder.dateView.setTypeface(null, file.Changed ? Typeface.BOLD : Typeface.NORMAL);
         holder.timeView.setTypeface(null, file.Changed ? Typeface.BOLD : Typeface.NORMAL);
 

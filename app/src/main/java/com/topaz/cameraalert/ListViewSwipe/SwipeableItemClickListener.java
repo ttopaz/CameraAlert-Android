@@ -74,6 +74,5 @@ public class SwipeableItemClickListener implements RecyclerView.OnItemTouchListe
         }
         return null;
     }
-
 }
 

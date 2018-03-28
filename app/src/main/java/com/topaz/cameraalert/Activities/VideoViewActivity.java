@@ -33,9 +33,8 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         Vitamio.isInitialized(this);
-//        if (!LibsChecker.checkVitamioLibs(this))
-  //          return;
 
         Bundle bundle = getIntent().getExtras();
 
@@ -45,30 +44,22 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
         videoview = (VideoView) findViewById(R.id.video);
         // Execute StreamVideo AsyncTask
 
-        String VideoURL = bundle.getString("url");
+        String videoURL = bundle.getString("url");
 
         pb = (ProgressBar) findViewById(R.id.probar);
 
         downloadRateView = (TextView) findViewById(R.id.download_rate);
         loadRateView = (TextView) findViewById(R.id.load_rate);
 
-        //videoview.setBufferSize(0);
-        videoview.setHardwareDecoder(true);
-        // Create a progressbar
-/*        progress = new ProgressDialog(this);
-        progress.setMessage("Buffering...");
-        progress.setCancelable(true);
-        // Show progressbar
-        progress.show();
-*/
+
+      //  videoview.setHardwareDecoder(true);
+
         try {
             // Start the MediaController
             MediaController mediacontroller = new MediaController(this);
-//            mediacontroller.setAnchorView(videoview);
+
             // Get the URL from String VideoURL
-            Uri video = Uri.parse(VideoURL);
-//            videoview.setBufferSize(2048);
-  //          videoview.setVideoQuality(MediaPlayer.VIDEOQUALITY_MEDIUM);
+            Uri video = Uri.parse(videoURL);
             videoview.setMediaController(mediacontroller);
             HashMap<String, String> options = new HashMap<String, String>();
             options.put("rtsp_transport", "tcp");
@@ -79,9 +70,6 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
         } catch (Exception e) {
             Log.e("Error", e.getMessage());
             e.printStackTrace();
-//            if (progress.isShowing())
-  //              progress.dismiss();
-         //   pDialog.dismiss();
         }
 
         videoview.setOnInfoListener(this);
@@ -91,22 +79,9 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
         videoview.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
-               // mediaPlayer.setBufferSize(0);
                 mediaPlayer.setPlaybackSpeed(1.0f);
-//                if (progress.isShowing())
-  //                  progress.dismiss();
             }
         });
-/*        videoview.setOnPreparedListener(new OnPreparedListener() {
-            // Close the progress bar and play the video
-            @Override
-            public void onPrepared(MediaPlayer mp) {
-                mp.setLooping(true);
-                pDialog.dismiss();
-                videoview.start();
-            }
-        });*/
-
     }
 
     @Override
@@ -120,7 +95,6 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
                     loadRateView.setText("");
                     downloadRateView.setVisibility(View.VISIBLE);
                     loadRateView.setVisibility(View.VISIBLE);
-
                 }
                 break;
             case MediaPlayer.MEDIA_INFO_BUFFERING_END:
@@ -140,5 +114,4 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         loadRateView.setText(percent + "%");
     }
-
 }

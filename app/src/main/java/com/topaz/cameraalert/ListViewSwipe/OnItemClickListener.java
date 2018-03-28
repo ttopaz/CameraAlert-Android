@@ -19,5 +19,5 @@ public interface OnItemClickListener {
      *             by the adapter)
      * @param position The position of the view in the adapter.
      */
-    public void onItemClick(View view, int position);
+    void onItemClick(View view, int position);
 }

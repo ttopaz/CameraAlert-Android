@@ -566,7 +566,7 @@ public class SwipeToDismissTouchListener<SomeCollectionView extends ViewAdapter>
                         pendingDismissData.rowContainer.rightContainer.setTranslationX(0);
                         pendingDismissData.rowContainer.leftContainer.setTranslationX(0);
                         pendingDismissData.rowContainer.rightContainer.setAlpha(1);
-                        pendingDismissData.rowContainer.leftContainer.setAlpha(1);;
+                        pendingDismissData.rowContainer.leftContainer.setAlpha(1);
 
                         lp.height = originalHeight;
                         pendingDismissData.rowContainer.container.setLayoutParams(lp);

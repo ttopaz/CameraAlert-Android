@@ -72,13 +72,14 @@ import java.util.TimerTask;
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, TabLayout.OnTabSelectedListener
 {
     private SwipeRefreshLayout swipeRefreshLayout;
-    private ArrayList<Camera> cameras = null;
+    private ArrayList<Camera> cameras;
     private ArrayList<CameraFile> cameraFiles = new ArrayList<CameraFile>();
     private int cameraIndex = 0;
     private int cameraId = 0;
 //    private NotificationReceiver nReceiver;
     private boolean showChangedOnly = false;
     private int switchedIndex = -1;
+    private RESTMgr _service;
     private SwipeToDismissTouchListener<RecyclerViewAdapter> touchListener;
     private static final int TIME_TO_AUTOMATICALLY_DISMISS_ITEM = 1000;
 
@@ -86,12 +87,17 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        RESTMgr.getInstance().updateSettings(this);
+        _service = RESTMgr.getInstance();
+
+        _service.updateSettings(this);
 
         cameras = new ArrayList<Camera>();
 
@@ -142,32 +148,44 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             }
         }
 
-        RESTMgr.getInstance().getCameras(new RESTMgr.OnTaskCompleted()
+        loadCameras();
+    }
+
+    private void loadCameras()
+    {
+        _service.getCameras(new RESTMgr.OnTaskCompleted()
         {
             @Override
             public void onTaskCompleted(Object result)
             {
-                cameras = new ArrayList<Camera>();
-                TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
-
-                try
-                {
-                    JSONArray ticketArray = (JSONArray) result;
-                    for (int i = 0; i < ticketArray.length(); i++)
-                    {
-                        JSONObject tickObj = (JSONObject) ticketArray.get(i);
-                        Camera camera = new Camera(tickObj);
-                        cameras.add(camera);
-                        tabLayout.addTab(tabLayout.newTab().setText(camera.Name));
-                    }
-                }
-                catch (JSONException ex)
-                {
-
-                }
-                onRefresh();
+                loadCamerasResults(result);
             }
         });
+    }
+
+    private void loadCamerasResults(Object result)
+    {
+        cameras = new ArrayList<Camera>();
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
+
+        try
+        {
+            tabLayout.removeAllTabs();
+
+            JSONArray ticketArray = (JSONArray) result;
+            for (int i = 0; i < ticketArray.length(); i++)
+            {
+                JSONObject tickObj = (JSONObject) ticketArray.get(i);
+                Camera camera = new Camera(tickObj);
+                cameras.add(camera);
+                tabLayout.addTab(tabLayout.newTab().setText(camera.Name));
+            }
+        }
+        catch (JSONException ex)
+        {
+
+        }
+        onRefresh();
     }
 
     private void initListView(final RecyclerView listView)
@@ -238,7 +256,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         touchListener.setDismissDelayRight(TIME_TO_AUTOMATICALLY_DISMISS_ITEM);
         touchListener.setDismissDelayLeft(10);
 
-
         listView.setOnTouchListener(touchListener);
         listView.setOnScrollListener((RecyclerView.OnScrollListener)touchListener.makeScrollListener());
         listView.addOnItemTouchListener(new SwipeableItemClickListener(this,
@@ -261,6 +278,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 }
             }));
     }
+
     private boolean isListenerServiceRunnning()
     {
         ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
@@ -292,7 +310,17 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     public void onResume()
     {
         super.onResume();
-        RESTMgr.getInstance().updateSettings(this);
+
+        _service.updateSettings(this);
+
+        if (cameras.size() == 0)
+        {
+            loadCameras();
+        }
+        else
+        {
+            onRefresh();
+        }
     }
 
     @Override
@@ -429,7 +457,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-
         if (settings.getBoolean("debugMode", false) == false)
         {
             int sindex = liveUrl.indexOf("@");
@@ -453,7 +480,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void deleteFile(final CameraFile obj, final boolean removeFromList)
     {
-        RESTMgr.getInstance().deleteCameraFile(obj.CameraId, obj.File, new RESTMgr.OnTaskCompleted()
+        _service.deleteCameraFile(obj.CameraId, obj.File, new RESTMgr.OnTaskCompleted()
         {
             @Override
             public void onTaskCompleted(Object result)
@@ -461,7 +488,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
                 ((FileAdapter) lv.getAdapter()).remove(obj);
                 cameraFiles.remove(obj);
-                ((FileAdapter) lv.getAdapter()).notifyDataSetChanged();
+                lv.getAdapter().notifyDataSetChanged();
             }
         });
     }
@@ -485,9 +512,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     {
                         readFiles.add(code);
                     }
-                    ((FileAdapter) lv.getAdapter()).remove(cameraFiles.get(index));
+                    ((FileAdapter)lv.getAdapter()).remove(cameraFiles.get(index));
                 }
-                ((FileAdapter) lv.getAdapter()).notifyDataSetChanged();
+                lv.getAdapter().notifyDataSetChanged();
             }
             else
             {
@@ -504,8 +531,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         date.setTypeface(null, Typeface.NORMAL);
                         TextView time = (TextView) rowView.findViewById(R.id.file_time_range);
                         time.setTypeface(null, Typeface.NORMAL);
-//                        TextView name = (TextView) rowView.findViewById(R.id.file_name);
-  //                      name.setTypeface(null, Typeface.NORMAL);
                     }
                 }
             }
@@ -527,7 +552,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 if (showChangedOnly)
                 {
                     ((FileAdapter) lv.getAdapter()).remove(obj);
-                    ((FileAdapter) lv.getAdapter()).notifyDataSetChanged();
+                    lv.getAdapter().notifyDataSetChanged();
                 }
                 else
                 {
@@ -535,11 +560,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     date.setTypeface(null, Typeface.NORMAL);
                     TextView time = (TextView) rowView.findViewById(R.id.file_time_range);
                     time.setTypeface(null, Typeface.NORMAL);
-//                    TextView name = (TextView) rowView.findViewById(R.id.file_name);
-  //                  name.setTypeface(null, Typeface.NORMAL);
                 }
             }
         }
+
         SharedPreferences.Editor editor = settings.edit();
         editor.putStringSet(key, readFiles);
         editor.commit();
@@ -568,8 +592,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     date.setTypeface(null, Typeface.BOLD);
                     TextView time = (TextView) rowView.findViewById(R.id.file_time_range);
                     time.setTypeface(null, Typeface.BOLD);
-//                    TextView name = (TextView) rowView.findViewById(R.id.file_name);
-  //                  name.setTypeface(null, Typeface.BOLD);
                 }
             }
         }
@@ -590,8 +612,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 date.setTypeface(null, Typeface.BOLD);
                 TextView time = (TextView) rowView.findViewById(R.id.file_time_range);
                 time.setTypeface(null, Typeface.BOLD);
-//                TextView name = (TextView) rowView.findViewById(R.id.file_name);
-  //              name.setTypeface(null, Typeface.BOLD);
             }
         }
         SharedPreferences.Editor editor = settings.edit();
@@ -601,7 +621,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void playFile(CameraFile file)
     {
-        String video = RESTMgr.getInstance().getCameraFileUrl(Integer.toString(cameras.get(cameraIndex).Id), file.File);
+        String video = _service.getCameraFileUrl(Integer.toString(cameras.get(cameraIndex).Id), file.File);
 
         Uri uri = Uri.parse(video);
 
@@ -609,27 +629,12 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         if (settings.getBoolean("internalPlayer", false) == true)
         {
-
             Intent intent = new Intent(getApplicationContext(), VideoViewActivity.class /*WebViewActivity.class*/);
 
             Bundle bundle = new Bundle();
             bundle.putString("url", video);
             intent.putExtras(bundle);
             MainActivity.this.startActivity(intent);
-        //                        startActivityForResult(intent, PICK_TRAIL_REQUEST);
-
-/*            try
-            {
-                MediaPlayer mediaPlayer = new MediaPlayer();
-                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                mediaPlayer.setDataSource(video);
-                mediaPlayer.prepare(); // might take long! (for buffering, etc)
-                mediaPlayer.start();
-            }
-            catch (IOException ex)
-            {
-
-            }*/
         }
         else
         {
@@ -647,8 +652,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         if (cameraIndex >= cameras.size())
             return;
 
-        final SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
         cameraFiles = new ArrayList<CameraFile>();
         final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
         lv.setTag(null);
@@ -656,69 +659,75 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         ImageManager.getInstance().cancelDownloads();
 
+        final SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
         final String cameraId = Integer.toString(cameras.get(cameraIndex).Id);
         final int days = Integer.parseInt(settings.getString("days", "2"));
 
-        RESTMgr.getInstance().getCameraFiles(cameraId, days, new RESTMgr.OnTaskCompleted()
+        _service.getCameraFiles(cameraId, days, new RESTMgr.OnTaskCompleted()
         {
             @Override
             public void onTaskCompleted(Object result)
             {
-                switchedIndex = 0;
-                cameraFiles = new ArrayList<CameraFile>();
-                try
-                {
-                    Set<String> readFiles = settings.getStringSet("Read" + cameraId, new HashSet<String>());
-
-                    android.text.format.Formatter formatter = new android.text.format.Formatter();
-                    JSONArray ticketArray = (JSONArray) result;
-                    for (int i = 0; i < ticketArray.length(); i++)
-                    {
-                        JSONObject tickObj = (JSONObject) ticketArray.get(i);
-                        CameraFile file = new CameraFile(cameraId, tickObj);
-
-                        String code = Integer.toString(file.File.hashCode());
-
-                        if (readFiles.contains(code))
-                            file.Changed = false;
-
-                        if (file.File.endsWith(".mp4"))
-                        {
-                            if (!showChangedOnly || file.Changed)
-                                cameraFiles.add(file);
-                        }
-                    }
-
-                }
-                catch (JSONException ex)
-                {
-
-                }
-
-                Collections.sort(cameraFiles, new Comparator<CameraFile>()
-                {
-                    public int compare(CameraFile o1, CameraFile o2)
-                    {
-                        return o2.Date.compareTo(o1.Date);
-                    }
-                });
-
-                final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
-                ViewCompat.setNestedScrollingEnabled(lv, true);
-
-                RecyclerView.Adapter adapter = lv.getAdapter();
-
-                if (adapter == null)
-                {
-                    adapter = new FileAdapter(getApplicationContext(), cameraFiles);
-                    lv.setAdapter(adapter);
-                }
-                else
-                {
-                    ((FileAdapter)adapter).setData(cameraFiles);
-                }
+                loadCameraFilesResults(result, cameraId, settings);
             }
         });
+    }
+
+    private void loadCameraFilesResults(Object result, final String cameraId, final SharedPreferences settings)
+    {
+        switchedIndex = 0;
+        cameraFiles = new ArrayList<CameraFile>();
+        try
+        {
+            Set<String> readFiles = settings.getStringSet("Read" + cameraId, new HashSet<String>());
+
+            JSONArray ticketArray = (JSONArray) result;
+            for (int i = 0; i < ticketArray.length(); i++)
+            {
+                JSONObject tickObj = (JSONObject) ticketArray.get(i);
+                CameraFile file = new CameraFile(cameraId, tickObj);
+
+                String code = Integer.toString(file.File.hashCode());
+
+                if (readFiles.contains(code))
+                    file.Changed = false;
+
+                if (file.File.endsWith(".mp4"))
+                {
+                    if (!showChangedOnly || file.Changed)
+                        cameraFiles.add(file);
+                }
+            }
+
+        }
+        catch (JSONException ex)
+        {
+
+        }
+
+        Collections.sort(cameraFiles, new Comparator<CameraFile>()
+        {
+            public int compare(CameraFile o1, CameraFile o2)
+            {
+                return o2.Date.compareTo(o1.Date);
+            }
+        });
+
+        final RecyclerView lv = (RecyclerView) findViewById(R.id.cameraFiles);
+        ViewCompat.setNestedScrollingEnabled(lv, true);
+
+        RecyclerView.Adapter adapter = lv.getAdapter();
+
+        if (adapter == null)
+        {
+            adapter = new FileAdapter(getApplicationContext(), cameraFiles);
+            lv.setAdapter(adapter);
+        }
+        else
+        {
+            ((FileAdapter)adapter).setData(cameraFiles);
+        }
     }
 
     private void CreateAlert(String text, int cameraId, Date time)
@@ -771,7 +780,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     public void onStop()
     {
         super.onStop();
-
     }
 
     class NotificationReceiver extends BroadcastReceiver

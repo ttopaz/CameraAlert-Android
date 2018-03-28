@@ -234,12 +234,14 @@ public class RESTMgr
         }
 
         @Override
-        protected String doInBackground(String... urls) {
+        protected String doInBackground(String... urls)
+        {
             try
             {
                 URL uri = new URL(urls[0]);
 
                 HttpURLConnection urlConnection = (HttpURLConnection) uri.openConnection();
+                urlConnection.setConnectTimeout(2000);
                 urlConnection.setRequestMethod("GET");
                 for (String key : headers.keySet())
                     urlConnection.setRequestProperty(key, headers.get(key));
@@ -332,6 +334,7 @@ public class RESTMgr
                 URL uri = new URL(urls[0]);
 
                 HttpURLConnection urlConnection = (HttpURLConnection) uri.openConnection();
+                urlConnection.setConnectTimeout(2000);
                 urlConnection.setRequestMethod("POST");
                 urlConnection.setRequestProperty("Content-type", "application/json");
                 for (String key : headers.keySet())
