@@ -80,7 +80,6 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             if (imageUrl != null)
             {
                 holder.getImage(imageUrl);
-//                _imageService.getImage(imageUrl, holder.imageView);
             }
         }
     }
@@ -92,8 +91,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
 
     @Override
     public long getItemId(int position) {
-        return -1;
-//        return position;
+        return position;
     }
 
     public CameraFile getItem(int position) {

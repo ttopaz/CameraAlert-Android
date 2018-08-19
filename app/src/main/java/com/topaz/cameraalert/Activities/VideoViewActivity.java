@@ -64,7 +64,15 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
             options.put("rtsp_transport", "tcp");
             options.put("rtsp_flags", "prefer_tcp");// udp
 
-            videoview.setVideoURI(video, options);
+            try
+            {
+                videoview.setVideoURI(video, options);
+            }
+            catch (Exception e1)
+            {
+                videoview.setHardwareDecoder(false);
+                videoview.setVideoURI(video, options);
+            }
 
         } catch (Exception e) {
             Log.e("Error", e.getMessage());
@@ -78,7 +86,8 @@ public class VideoViewActivity extends Activity implements MediaPlayer.OnInfoLis
         videoview.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
-                mediaPlayer.setPlaybackSpeed(1.0f);
+                if (mediaPlayer != null)
+                    mediaPlayer.setPlaybackSpeed(1.0f);
             }
         });
     }

@@ -18,6 +18,7 @@ public class CameraFile
     public String CameraId;
     public String File;
     public String Path;
+    public String ImagePath;
     public Date Date;
     public Date CreateDate;
     public long Size;
@@ -30,9 +31,15 @@ public class CameraFile
 
     public CameraFile(String cameraId, JSONObject json)
     {
-        try {
+        try
+        {
             this.File = json.getString("File");
             this.Path = json.getString("Path");
+
+            if (json.has("ImagePath"))
+            {
+                this.ImagePath = json.getString("ImagePath");
+            }
 
             TimeZone utc = TimeZone.getTimeZone("UTC");
             SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
