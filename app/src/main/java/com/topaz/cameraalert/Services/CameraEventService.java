@@ -120,7 +120,7 @@ public class CameraEventService extends Service
                 _timerHandler.post(new Runnable() {
                     public void run()
                     {
-                        RESTMgr.getInstance().getEvents(new RESTMgr.OnTaskCompleted()
+    /*                    RESTMgr.getInstance().getEvents(new RESTMgr.OnTaskCompleted()
                         {
                             @Override
                             public void onTaskCompleted(Object result)
@@ -128,7 +128,7 @@ public class CameraEventService extends Service
                                 JSONArray eventData = (JSONArray) result;
                                 analyzeFileCreateEvents(eventData);
                             }
-                        });
+                        });*/
                     }
                 });
             }

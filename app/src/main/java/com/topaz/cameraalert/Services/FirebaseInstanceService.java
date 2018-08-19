@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.FirebaseInstanceIdService;
+import com.topaz.cameraalert.Utils.RESTMgr;
 
 public class FirebaseInstanceService extends FirebaseInstanceIdService
 {
@@ -22,7 +23,9 @@ public class FirebaseInstanceService extends FirebaseInstanceIdService
     }
 
     private void sendRegistrationToServer(String token) {
-        // Add custom implementation, as needed.
+
+        RESTMgr service = RESTMgr.getInstance();
+        service.setToken(token, null);
     }
 
 }

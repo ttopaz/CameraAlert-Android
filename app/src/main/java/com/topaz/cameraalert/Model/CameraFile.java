@@ -19,6 +19,9 @@ public class CameraFile
     public String File;
     public String Path;
     public String ImagePath;
+    public String ImageUrl;
+    public String VideoUrl;
+    public String VideoUrlProvider;
     public Date Date;
     public Date CreateDate;
     public long Size;
@@ -39,6 +42,21 @@ public class CameraFile
             if (json.has("ImagePath"))
             {
                 this.ImagePath = json.getString("ImagePath");
+            }
+
+            if (json.has("imageUrl"))
+            {
+                this.ImageUrl = json.getString("imageUrl");
+            }
+
+            if (json.has("videoUrl"))
+            {
+                this.VideoUrl = json.getString("videoUrl");
+            }
+
+            if (json.has("videoUrlProvider"))
+            {
+                this.VideoUrlProvider = json.getString("videoUrlProvider");
             }
 
             TimeZone utc = TimeZone.getTimeZone("UTC");

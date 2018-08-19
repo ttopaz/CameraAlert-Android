@@ -7,6 +7,8 @@ import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 
+import com.topaz.cameraalert.Model.CameraFile;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -124,9 +126,21 @@ public class RESTMgr
         new GetTask(listener)
                 .execute(getServerAddress() + "/PlayCameraFile?Id=" + cameraId + "&File=" + file);
     }
-    public String getCameraFileUrl(String cameraId, String file)
+
+    public void getCameraFileUrl(CameraFile file, OnTaskCompleted listener)
     {
-        try {
+        if (file.VideoUrl != null)
+        {
+            listener.onTaskCompleted(getServerAddress() + file.VideoUrl);
+        }
+        else if (file.VideoUrlProvider != null)
+        {
+            final String basicAuth = getAuth();
+            new GetTask(listener).addHeader("Authorization", basicAuth)
+                    .execute(getServerAddress() + file.VideoUrlProvider);
+        }
+
+/*        try {
             file = URLEncoder.encode(file, "utf-8");
         } catch (UnsupportedEncodingException e)
         {
@@ -134,7 +148,7 @@ public class RESTMgr
             e.printStackTrace();
         }
 
-        return getServerAddress() + "/PlayCameraFile?Id=" + cameraId + "&File=" + file;
+        return getServerAddress() + "/PlayCameraFile?Id=" + cameraId + "&File=" + file;*/
     }
     public String getCameraImageUrl(String cameraId, String file)
     {
@@ -173,6 +187,23 @@ public class RESTMgr
                 .execute(url);
     }
 
+    public void setToken(String token, OnTaskCompleted listener)
+    {
+        final String basicAuth = getAuth();
+        JSONObject data = new JSONObject();
+        try
+        {
+            data.put("Token", token);
+            new PostTask(listener)
+                    .addHeader("Authorization", basicAuth)
+                    .setData(data)
+                    .execute(getServerAddress() + "/SetToken");
+        }
+        catch (JSONException e)
+        {
+            e.printStackTrace();
+        }
+    }
 
     public void deleteCameraFile(String cameraId, String file, OnTaskCompleted listener)
     {

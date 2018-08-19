@@ -36,6 +36,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.iid.FirebaseInstanceId;
 import com.topaz.cameraalert.Activities.SettingsActivity;
 import com.topaz.cameraalert.Activities.VideoViewActivity;
 import com.topaz.cameraalert.ListViewSwipe.ListViewAdapter;
@@ -153,14 +154,21 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void loadCameras()
     {
-        _service.getCameras(new RESTMgr.OnTaskCompleted()
+        try
         {
-            @Override
-            public void onTaskCompleted(Object result)
+            _service.setToken(FirebaseInstanceId.getInstance().getToken(), null);
+            _service.getCameras(new RESTMgr.OnTaskCompleted()
             {
-                loadCamerasResults(result);
-            }
-        });
+                @Override
+                public void onTaskCompleted(Object result)
+                {
+                    loadCamerasResults(result);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+        }
     }
 
     private void loadCamerasResults(Object result)
@@ -619,32 +627,60 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         editor.commit();
     }
 
-    private void playFile(CameraFile file)
+    private void playFile(final CameraFile file)
     {
-        String video = _service.getCameraFileUrl(Integer.toString(cameras.get(cameraIndex).Id), file.File);
-
-        Uri uri = Uri.parse(video);
-
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-        if (settings.getBoolean("internalPlayer", false) == true)
+        _service.getCameraFileUrl(file, new RESTMgr.OnTaskCompleted()
         {
-            Intent intent = new Intent(getApplicationContext(), VideoViewActivity.class /*WebViewActivity.class*/);
+            @Override
+            public void onTaskCompleted(Object result)
+            {
+                String video = null;
 
-            Bundle bundle = new Bundle();
-            bundle.putString("url", video);
-            intent.putExtras(bundle);
-            MainActivity.this.startActivity(intent);
-        }
-        else
-        {
-            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-            intent.setDataAndType(uri, "video/mp4");
-            MainActivity.this.startActivity(intent);
-        }
+                if (file.VideoUrl != null)
+                {
+                    video = (String)result;
+                }
+                else if (file.VideoUrlProvider != null)
+                {
+                    try
+                    {
+                        JSONObject urlObj = (JSONObject) result;
+                        video = urlObj.getString("Url");
+                    }
+                    catch (JSONException ex)
+                    {
 
-        if (settings.getBoolean("markWatched", true) == true)
-            markRead(file);
+                    }
+                }
+
+                if (video == null)
+                {
+                    return;
+                }
+                Uri uri = Uri.parse(video);
+
+                SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
+                if (settings.getBoolean("internalPlayer", false) == true)
+                {
+                    Intent intent = new Intent(getApplicationContext(), VideoViewActivity.class /*WebViewActivity.class*/);
+
+                    Bundle bundle = new Bundle();
+                    bundle.putString("url", video);
+                    intent.putExtras(bundle);
+                    MainActivity.this.startActivity(intent);
+                }
+                else
+                {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                    intent.setDataAndType(uri, "video/mp4");
+                    MainActivity.this.startActivity(intent);
+                }
+
+                if (settings.getBoolean("markWatched", true) == true)
+                    markRead(file);
+            }
+        });
     }
 
     private void loadFiles()
@@ -693,7 +729,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 if (readFiles.contains(code))
                     file.Changed = false;
 
-                if (file.File.endsWith(".mp4"))
+                if (file.File.endsWith(".mp4") || file.VideoUrlProvider != null)
                 {
                     if (!showChangedOnly || file.Changed)
                         cameraFiles.add(file);
