@@ -1,10 +1,7 @@
 package com.topaz.cameraalert.Activities;
 
 import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.ActivityManager;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.media.Ringtone;
@@ -12,20 +9,13 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.RingtonePreference;
-import android.support.v4.content.LocalBroadcastManager;
-import android.text.TextUtils;
 
-
-import com.topaz.cameraalert.MainActivity;
 import com.topaz.cameraalert.R;
-import com.topaz.cameraalert.Services.CameraEventService;
 
 import java.util.List;
 
@@ -71,8 +61,10 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
      * device configuration dictates that a simplified, single-pane UI should be
      * shown.
      */
-    private void setupSimplePreferencesScreen() {
-        if (!isSimplePreferences(this)) {
+    private void setupSimplePreferencesScreen()
+    {
+        if (!isSimplePreferences(this))
+        {
             return;
         }
 
@@ -87,10 +79,8 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         bindPreferenceSummaryToValue(findPreference("serverPort"));
         bindPreferenceSummaryToValue(findPreference("days"));
 
-        bindPreferenceSummaryToValue(findPreference("serverMonitor"));
         bindPreferenceSummaryToValue(findPreference("sound"));
 
-        findPreference("monitorEvents").setOnPreferenceChangeListener(runServiceListener);
     }
 
     /** {@inheritDoc} */
@@ -134,29 +124,7 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
 
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
-
-            boolean serviceRunning = CameraEventService.isRunning(preference.getContext());
-
-            if ((boolean)value != serviceRunning)
-            {
-                try
-                {
-                    if (serviceRunning)
-                    {
-                        preference.getContext().stopService(new Intent(preference.getContext(), CameraEventService.class));
-                    }
-                    else
-                    {
-                        preference.getContext().startService(new Intent(preference.getContext(), CameraEventService.class));
-                    }
-                }
-                catch (Exception ex)
-                {
-
-                }
-            }
-
-            return true;
+         return true;
         }
     };
 

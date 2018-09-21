@@ -94,6 +94,7 @@ public class FirebaseMessageService extends FirebaseMessagingService
             ncomp.setSound(Uri.parse(sound));
 
         ncomp.setDefaults(Notification.DEFAULT_ALL);
+        ncomp.setDefaults(NotificationCompat.DEFAULT_VIBRATE);
         ncomp.setPriority(Notification.PRIORITY_HIGH);
         //        ncomp.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
 

@@ -44,12 +44,10 @@ import com.topaz.cameraalert.ListViewSwipe.OnItemClickListener;
 import com.topaz.cameraalert.ListViewSwipe.RecyclerViewAdapter;
 import com.topaz.cameraalert.ListViewSwipe.SwipeToDismissTouchListener;
 import com.topaz.cameraalert.ListViewSwipe.SwipeableItemClickListener;
-import com.topaz.cameraalert.Services.CameraEventService;
 import com.topaz.cameraalert.Utils.ImageManager;
 import com.topaz.cameraalert.Utils.RESTMgr;
 import com.topaz.cameraalert.Model.Camera;
 import com.topaz.cameraalert.Model.CameraFile;
-import com.topaz.cameraalert.Services.NotifyService;
 import com.topaz.cameraalert.Adapters.FileAdapter;
 
 import org.json.JSONArray;
@@ -76,8 +74,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private ArrayList<Camera> cameras;
     private ArrayList<CameraFile> cameraFiles = new ArrayList<CameraFile>();
     private int cameraIndex = 0;
-    private int cameraId = 0;
-//    private NotificationReceiver nReceiver;
     private boolean showChangedOnly = false;
     private int switchedIndex = -1;
     private RESTMgr _service;
@@ -116,40 +112,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         nManager.cancel(1001);
 
-/*        nReceiver = new NotificationReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction("com.topaz.cameraalert.NOTIFICATION_LISTENER");
-        registerReceiver(nReceiver, filter);
-
-        String notificationListenerString = Settings.Secure.getString(this.getContentResolver(), "enabled_notification_listeners");
-        //Check notifications access permission
-        if (notificationListenerString == null || !notificationListenerString.contains(getPackageName()))
-        {
-            requestListenerPermission();
-        }
-        else
-        {
-            Intent mServiceIntent = new Intent(this, NotifyService.class);
-            startService(mServiceIntent);
-        }
-*/
-
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
 
         tabLayout.setOnTabSelectedListener(this);
 
-        if (settings.getBoolean("monitorEvents", true) && !CameraEventService.isRunning(this))
-        {
-            try {
-                startService(new Intent(getBaseContext(), CameraEventService.class));
-            }
-            catch (Exception ex)
-            {
-
-            }
-        }
-
-        loadCameras();
+         loadCameras();
     }
 
     private void loadCameras()
@@ -287,31 +254,10 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             }));
     }
 
-    private boolean isListenerServiceRunnning()
-    {
-        ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
-        {
-            if ("NotifyService".equals(service.service.getClassName()))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void requestListenerPermission()
-    {
-        Intent requestIntent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
-        requestIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(requestIntent);
-    }
-
     @Override
     protected void onDestroy()
     {
         super.onDestroy();
-//        unregisterReceiver(nReceiver);
     }
 
     @Override
@@ -335,7 +281,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     public void onTabSelected(TabLayout.Tab tab)
     {
         cameraIndex = tab.getPosition();
-        cameraId = cameras.get(cameraIndex).Id;
         onRefresh();
     }
 
@@ -343,7 +288,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     public void onTabReselected(TabLayout.Tab tab)
     {
         cameraIndex = tab.getPosition();
-        cameraId = cameras.get(cameraIndex).Id;
         onRefresh();
     }
 
@@ -478,12 +422,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         bundle.putString("url", liveUrl);
         intent.putExtras(bundle);
         MainActivity.this.startActivity(intent);
-
-      /*  Uri uri = Uri.parse(camera.LiveIp);
-
-        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-        intent.setDataAndType(uri, "video/*");
-        MainActivity.this.startActivity(intent);*/
     }
 
     private void deleteFile(final CameraFile obj, final boolean removeFromList)
@@ -766,46 +704,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         }
     }
 
-    private void CreateAlert(String text, int cameraId, Date time)
-    {
-        NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        NotificationCompat.Builder ncomp = new NotificationCompat.Builder(this);
-        ncomp.setContentTitle("Camera Alert");
-        ncomp.setContentText(text);
-        ncomp.setTicker(text);
-        ncomp.setSmallIcon(R.mipmap.ic_launcher);
-        ncomp.setAutoCancel(true);
-
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-        String sound = settings.getString("sound", "");
-        if (sound != "")
-            ncomp.setSound(Uri.parse(sound));
-
-        ncomp.setDefaults(Notification.DEFAULT_ALL);
-        ncomp.setPriority(Notification.PRIORITY_HIGH);
-//        ncomp.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-
-        Intent resultIntent = new Intent(this, MainActivity.class);
-        resultIntent.putExtra("notifyMsg", text);
-        resultIntent.putExtra("notifyTime", time);
-        resultIntent.putExtra("notifyCameraId", cameraId);
-
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        // Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(MainActivity.class);
-        // Adds the Intent that starts the Activity to the top of the stack
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent =
-                stackBuilder.getPendingIntent(
-                        0,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-        ncomp.setContentIntent(resultPendingIntent);
-
-        nManager.notify(1001, ncomp.build());
-    }
-
     @Override
     public void onStart()
     {
@@ -816,16 +714,5 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     public void onStop()
     {
         super.onStop();
-    }
-
-    class NotificationReceiver extends BroadcastReceiver
-    {
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-            String message = intent.getStringExtra("reolink_notification_event");
-            CreateAlert(message, 1, new Date());
-            onRefresh();
-        }
     }
 }
