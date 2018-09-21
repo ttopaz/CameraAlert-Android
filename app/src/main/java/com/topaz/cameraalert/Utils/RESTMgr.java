@@ -53,6 +53,7 @@ public class RESTMgr
     private int serverPort;
     private Context appContext;
 
+    // need to change to actual values
     private String USERNAME = "admin";
     private String PASSWORD = "admin";
 
@@ -70,8 +71,8 @@ public class RESTMgr
         if (settings.getBoolean("debugMode", false) == true)
             serverIP = settings.getString("debugServerIP", "192.168.1.120");
         else
-            serverIP = settings.getString("prodServerIP", "ttopaz.duckdns.org");
-        serverPort = Integer.parseInt(settings.getString("serverPort", "3000"));
+            serverIP = settings.getString("prodServerIP", "99.99.99.99");
+        serverPort = Integer.parseInt(settings.getString("serverPort", "3500"));
     }
 
     private String getServerAddress()
